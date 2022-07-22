@@ -1,5 +1,6 @@
 import {Injectable, Logger} from '@nestjs/common';
 import * as ds from "discord.js";
+import {DVoice} from "../modules/voice";
 
 @Injectable()
 export class DiscordService {
@@ -10,8 +11,10 @@ export class DiscordService {
 
 	private logger = new Logger(DiscordService.name);
 
-	private client: ds.Client = null;
-	private guild: ds.Guild = null;
+	private client: ds.Client;
+	private guild: ds.Guild;
+
+	private voice = new DVoice();
 
 	/**
 	 * It logs the bot into Discord and fetches the guild
@@ -35,6 +38,7 @@ export class DiscordService {
 		});
 		await this.client.login(process.env.DISCORD_KEY);
 		this.guild = await this.client.guilds.fetch(`437601028662231040`);
+		this.voice.init(this.client, this.guild);
 		await this.run();
 	}
 
