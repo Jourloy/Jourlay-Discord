@@ -1,11 +1,18 @@
 import {Injectable, Logger} from '@nestjs/common';
 import * as ds from "discord.js";
 import {DVoice} from "../modules/voice";
+import {DMenu} from "../modules/menu";
+import {DMusic} from "../modules/music";
+import {DTool} from "../modules/tools";
 
 @Injectable()
 export class DiscordService {
 
-	constructor() {
+	constructor(
+		private music: DMusic,
+		private menu: DMenu,
+		private tools: DTool,
+	) {
 		this.init().then(() => null);
 	}
 
@@ -13,8 +20,6 @@ export class DiscordService {
 
 	private client: ds.Client;
 	private guild: ds.Guild;
-
-	private voice = new DVoice();
 
 	/**
 	 * It logs the bot into Discord and fetches the guild
@@ -38,7 +43,8 @@ export class DiscordService {
 		});
 		await this.client.login(process.env.DISCORD_KEY);
 		this.guild = await this.client.guilds.fetch(`437601028662231040`);
-		this.voice.init(this.client, this.guild);
+		await this.music.init(this.guild);
+		this.menu.init(this.client, this.guild, this.music);
 		await this.run();
 	}
 
@@ -48,6 +54,46 @@ export class DiscordService {
 		if (msg.channelId === `986037014619099206`) await msg.crosspost();
 
 		if (msg.author.bot) return;
+
+		if (msg.channelId === `983133016681492551`) {
+			await msg.delete();
+			const w = this.menu.waiting.filter(s => s.id === msg.author.id);
+			if (w.length === 0) return;
+			if (w[0].s === `limit`) {
+				if (isNaN(parseInt(msg.content))) {
+					const m = await msg.channel.send({content: `Это не число`});
+					this.tools.msgDelete(m, 1000 * 10);
+					return;
+				}
+				if (parseInt(msg.content) < 0 || parseInt(msg.content) > 20) {
+					const m = await msg.channel.send({content: `Число должно быть от 0 до 20`});
+					this.tools.msgDelete(m, 1000 * 10);
+					return;
+				}
+				await this.menu.changeVoiceLimit(msg.author.id, parseInt(msg.content));
+			} else if (w[0].s === `name`) {
+				if (msg.content.length > 25) {
+					const m = await msg.channel.send({content: `Строка должна быть короче 25 символов`});
+					this.tools.msgDelete(m, 1000 * 10);
+					return;
+				}
+				await this.menu.changeVoiceName(msg.author.id, msg.content);
+			} else if (w[0].s === `music`) {
+				if (!msg.content.startsWith(`http`)) {
+					const m = await msg.channel.send({content: `Не похоже на ссылку`});
+					this.tools.msgDelete(m, 1000 * 10);
+					return;
+				}
+				if (!msg.content.includes(`youtube`)) {
+					const m = await msg.channel.send({content: `Нужны ссылки только с ютуба`});
+					this.tools.msgDelete(m, 1000 * 10);
+					return;
+				}
+				const force = await this.tools.isMod(msg.author.id);
+				const m = await msg.channel.send({content: await this.menu.playMusic(msg.author.id, msg.content, force)});
+				this.tools.msgDelete(m, 1000 * 10);
+			}
+		}
 	}
 
 	/**

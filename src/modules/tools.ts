@@ -1,14 +1,11 @@
-import {Logger} from "@nestjs/common";
 import * as ds from "discord.js";
 
-export class Tools {
+export class DTool {
 
-	constructor(c: ds.Client, g: ds.Guild) {
+	public init(c: ds.Client, g: ds.Guild) {
 		this.client = c;
 		this.guild = g;
 	}
-
-	private logger = new Logger(Tools.name);
 
 	private client: ds.Client;
 	private guild: ds.Guild;
@@ -24,5 +21,19 @@ export class Tools {
 			if (msg.deletable) await msg.delete();
 		}, time);
 		return {error: false, timeout: t};
+	}
+
+	/**
+	 * It checks if the user is a moderator.
+	 * @param {string} userID - The user's ID.
+	 * @returns A boolean value.
+	 */
+	public async isMod(userID: string): Promise<boolean> {
+		const userMod = await this.guild.members
+			.fetch(userID)
+			.then(user =>
+				user.roles.cache.find(role => role.id === `799561051905458176`)
+			);
+		return userMod != null;
 	}
 }

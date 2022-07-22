@@ -24,7 +24,7 @@ export class DRoles {
 		const user = await this.guild.members.fetch(u);
 		return await user.roles
 			.add(role)
-			.then(() => ({error: false, description: `Role successfully setted`}))
+			.then(() => ({error: false, description: `Role successfully set`}))
 			.catch(err => ({error: true, reason: err}));
 	}
 
